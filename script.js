@@ -1,38 +1,35 @@
 // =============================================
-// Time-Aware Population Counter
-// - Continues growth even when tab is closed
-// - Uses timestamps instead of freezing
+// Time-Aware Population Counter (GLOBAL VERSION)
+// Firebase Realtime Database
 // =============================================
 
-const secondsPerYear = 365 * 24 * 60 * 60;
+const { initializeApp, getDatabase, ref, get, set } = window.firebaseModules;
 
-// ---- Default Values (only first visit) ----
-const defaultWorld = 8180000000;
-
-const defaultReligions = {
-  christian: 2380000000,
-  islam: 2020000000,
-  hindu: 1200000000,
-
-  buddhism: 520000000,
-  judaism: 15000000,
-  sikhism: 30000000,
-  taoism: 12000000,
-  confucianism: 6000000,
-  jainism: 4500000,
-  shinto: 3000000,
-
-  unaffiliated: 1900000000
+// 🔐 Your Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyC60KbVWhfeMRUyYPQHn_4z3tL_KPuaCAs",
+  authDomain: "world-religion-database.firebaseapp.com",
+  databaseURL: "https://world-religion-database-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "world-religion-database",
+  storageBucket: "world-religion-database.firebasestorage.app",
+  messagingSenderId: "226381276599",
+  appId: "1:226381276599:web:5c15d6b6f32e232125b432",
+  measurementId: "G-KTLELSJPFK"
 };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
+const statsRef = ref(database, "/");
+
+const secondsPerYear = 365 * 24 * 60 * 60;
 
 // ---- Growth Rates (per year) ----
 const growthRates = {
   world: 0.0085,
-
   christian: 0.008,
   islam: 0.021,
   hindu: 0.011,
-
   buddhism: -0.0025,
   judaism: 0.003,
   sikhism: 0.010,
@@ -40,40 +37,56 @@ const growthRates = {
   confucianism: -0.004,
   jainism: 0.001,
   shinto: -0.005,
-
   unaffiliated: 0.012
 };
 
-// =============================================
-// LOAD SAVED DATA
-// =============================================
-let worldPopulation = parseFloat(localStorage.getItem("worldPopulation")) || defaultWorld;
-let religions = JSON.parse(localStorage.getItem("religions")) || { ...defaultReligions };
-
-// Last time user was on page
-let lastTimestamp = parseInt(localStorage.getItem("lastTimestamp")) || Date.now();
-
-// Store previous displayed values (for colors)
-let previousDisplay = JSON.parse(localStorage.getItem("previousDisplay")) || {};
+// ---- Global State ----
+let worldPopulation = 0;
+let religions = {};
+let lastTimestamp = 0;
+let previousDisplay = {};
 
 // =============================================
-// APPLY "BACKGROUND" GROWTH
+// LOAD DATA FROM FIREBASE
 // =============================================
+async function loadData() {
+  const snapshot = await get(statsRef);
 
-const now = Date.now();
-const elapsedSeconds = (now - lastTimestamp) / 1000;
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    worldPopulation = data.world;
+    religions = data.religions;
+    lastTimestamp = data.lastTimestamp || Date.now();
+  }
 
-// Apply growth for time away
-worldPopulation += worldPopulation * (growthRates.world * elapsedSeconds / secondsPerYear);
+  // Apply background growth
+  const now = Date.now();
+  const elapsedSeconds = (now - lastTimestamp) / 1000;
 
-for (let key in religions) {
-  religions[key] += religions[key] * (growthRates[key] * elapsedSeconds / secondsPerYear);
+  worldPopulation += worldPopulation * (growthRates.world * elapsedSeconds / secondsPerYear);
+
+  for (let key in religions) {
+    religions[key] += religions[key] * (growthRates[key] * elapsedSeconds / secondsPerYear);
+  }
+
+  // Initialize previous display
+  previousDisplay.world = Math.floor(worldPopulation);
+  for (let key in religions) {
+    previousDisplay[key] = Math.floor(religions[key]);
+  }
+
+  saveToDatabase();
 }
 
-// Initialize previous display values
-previousDisplay.world = Math.floor(worldPopulation);
-for (let key in religions) {
-  previousDisplay[key] = Math.floor(religions[key]);
+// =============================================
+// SAVE DATA TO FIREBASE
+// =============================================
+function saveToDatabase() {
+  set(statsRef, {
+    world: worldPopulation,
+    religions: religions,
+    lastTimestamp: Date.now()
+  });
 }
 
 // =============================================
@@ -102,7 +115,6 @@ function updateCounters() {
 
   // ---- RELIGIONS ----
   for (let key in religions) {
-
     religions[key] += religions[key] * (growthRates[key] / secondsPerYear);
     const el = document.getElementById(key);
     if (!el) continue;
@@ -121,16 +133,15 @@ function updateCounters() {
     previousDisplay[key] = current;
   }
 
-  // ---- SAVE STATE ----
-  localStorage.setItem("worldPopulation", worldPopulation);
-  localStorage.setItem("religions", JSON.stringify(religions));
-  localStorage.setItem("previousDisplay", JSON.stringify(previousDisplay));
-  localStorage.setItem("lastTimestamp", Date.now());
+  // Save globally
+  saveToDatabase();
 }
 
 // ---- RUN ----
-setInterval(updateCounters, 1000);
-updateCounters();
+loadData().then(() => {
+  updateCounters();
+  setInterval(updateCounters, 1000);
+});
 
 
 
