@@ -51,6 +51,8 @@ let previousDisplay = {};
 // =============================================
 async function loadData() {
   const snapshot = await get(statsRef);
+  console.log("Firebase snapshot:", snapshot.val());
+
 
   if (snapshot.exists()) {
     const data = snapshot.val();
