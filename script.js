@@ -179,6 +179,8 @@ function updateCounters() {
     worldDisplay < previousDisplay.world ? "#ff4d4d" : "white";
 
   previousDisplay.world = worldDisplay;
+  const worldInt = Math.floor(worldPopulation);
+
   // ===== DETERMINISTIC RELIGION DISPLAY =====
 const religionInts = getDeterministicReligionIntegers(
   worldInt,
