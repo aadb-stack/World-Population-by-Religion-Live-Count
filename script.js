@@ -109,26 +109,6 @@ async function loadData() {
   previousDisplay.world = Math.floor(worldPopulation);
 }
 
-
-  // Apply background growth
-  const now = Date.now();
-  const elapsedSeconds = (now - lastTimestamp) / 1000;
-
-  worldPopulation += worldPopulation * (growthRates.world * elapsedSeconds / secondsPerYear);
-
-  for (let key in religions) {
-    religions[key] += religions[key] * (growthRates[key] * elapsedSeconds / secondsPerYear);
-  }
-
-  // Initialize previous display
-  previousDisplay.world = Math.floor(worldPopulation);
-  for (let key in religions) {
-    previousDisplay[key] = Math.floor(religions[key]);
-  }
-
-  saveToDatabase();
-}
-
 // =============================================
 // SAVE DATA TO FIREBASE
 // =============================================
@@ -174,16 +154,6 @@ function updateCounters() {
   }
 }
 
-  // ===== DISPLAY RELIGIONS =====
-  for (let key in religions) {
-    const el = document.getElementById(key);
-    if (!el) continue;
-
-  }
-
-  // ===== SAVE =====
-  saveToDatabase();
-}
 
 
 // ---- RUN ----
