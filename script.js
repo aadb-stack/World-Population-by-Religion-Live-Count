@@ -1,44 +1,32 @@
-// =============================================
-// Time-Aware Population Counter (GLOBAL VERSION)
-// Firebase Realtime Database
-// =============================================
+// ================================
+// CLEAN, MINIMAL, DETERMINISTIC VERSION
+// ================================
 
-const { initializeApp, getDatabase, ref, get, set } = window.firebaseModules;
-function getDeterministicReligionIntegers(worldInt, religionShares) {
-  const entries = Object.entries(religionShares);
+const { initializeApp, getDatabase, ref, get } = window.firebaseModules;
 
-  // Step 1: raw values
-  const raw = entries.map(([key, share]) => ({
-    key,
-    value: worldInt * share
-  }));
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyC60KbVWhfeMRUyYPQHn_4z3tL_KPuaCAs",
+  authDomain: "world-religion-database.firebaseapp.com",
+  databaseURL: "https://world-religion-database-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "world-religion-database",
+  storageBucket: "world-religion-database.firebasestorage.app",
+  messagingSenderId: "226381276599",
+  appId: "1:226381276599:web:5c15d6b6f32e232125b432"
+};
 
-  // Step 2: floor all
-  const floored = raw.map(r => ({
-    key: r.key,
-    value: Math.floor(r.value),
-    frac: r.value - Math.floor(r.value)
-  }));
+// Init Firebase
+const app = initializeApp(firebaseConfig);
+const database = getDatabase(app);
 
-  // Step 3: distribute remainder deterministically
-  let remainder =
-    worldInt - floored.reduce((s, r) => s + r.value, 0);
+// 🔹 READ ONLY world seed
+const worldRef = ref(database, "world");
 
-  // Sort by fractional part DESC, then key (stable tie-break)
-  floored.sort((a, b) =>
-    b.frac - a.frac || a.key.localeCompare(b.key)
-  );
+// Time constants
+const secondsPerYear = 365 * 24 * 60 * 60;
+const worldGrowthRate = 0.0085;
 
-  for (let i = 0; i < remainder; i++) {
-    floored[i % floored.length].value++;
-  }
-
-  // Step 4: return object
-  return Object.fromEntries(
-    floored.map(r => [r.key, r.value])
-  );
-}
-
+// Religion shares (sum ≈ 1)
 const religionShares = {
   christian: 2380000000 / 8180000000,
   islam: 2020000000 / 8180000000,
@@ -53,108 +41,65 @@ const religionShares = {
   unaffiliated: 1900000000 / 8180000000
 };
 
-// 🔐 Your Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyC60KbVWhfeMRUyYPQHn_4z3tL_KPuaCAs",
-  authDomain: "world-religion-database.firebaseapp.com",
-  databaseURL: "https://world-religion-database-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "world-religion-database",
-  storageBucket: "world-religion-database.firebasestorage.app",
-  messagingSenderId: "226381276599",
-  appId: "1:226381276599:web:5c15d6b6f32e232125b432",
-  measurementId: "G-KTLELSJPFK"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-const statsRef = ref(database, "world");
-
-const secondsPerYear = 365 * 24 * 60 * 60;
-
-// ---- Growth Rates (per year) ----
-const growthRates = {
-  world: 0.0085,
-  christian: 0.008,
-  islam: 0.021,
-  hindu: 0.011,
-  buddhism: -0.0025,
-  judaism: 0.003,
-  sikhism: 0.010,
-  taoism: -0.004,
-  confucianism: -0.004,
-  jainism: 0.001,
-  shinto: -0.005,
-  unaffiliated: 0.012
-};
-
-// ---- Global State ----
+// Global state (ONLY world)
 let worldPopulation = 0;
-let previousDisplay = {};
 
+// Deterministic split
+function splitReligions(worldInt) {
+  const raw = Object.entries(religionShares).map(([k, s]) => ({
+    k,
+    v: worldInt * s
+  }));
 
-// =============================================
-// LOAD DATA FROM FIREBASE
-// =============================================
-async function loadData() {
-  const snapshot = await get(statsRef);
+  const floored = raw.map(r => ({
+    k: r.k,
+    v: Math.floor(r.v),
+    f: r.v - Math.floor(r.v)
+  }));
 
-  if (snapshot.exists()) {
-    worldPopulation = snapshot.val();
+  let remainder =
+    worldInt - floored.reduce((a, b) => a + b.v, 0);
+
+  floored.sort((a, b) => b.f - a.f || a.k.localeCompare(b.k));
+
+  for (let i = 0; i < remainder; i++) {
+    floored[i % floored.length].v++;
+  }
+
+  return Object.fromEntries(floored.map(r => [r.k, r.v]));
+}
+
+// Load world ONCE
+async function loadWorld() {
+  const snap = await get(worldRef);
+
+  if (snap.exists()) {
+    worldPopulation = Number(snap.val());
   } else {
-    // absolute safety fallback
     worldPopulation = 8180000000;
   }
-
-  previousDisplay.world = Math.floor(worldPopulation);
 }
 
-// =============================================
-// SAVE DATA TO FIREBASE
-// =============================================
-function saveToDatabase() {
-  set(statsRef, {
-    world: worldPopulation,
-    religions: religions,
-    lastTimestamp: Date.now()
-  });
-}
-
-// =============================================
-// UPDATE FUNCTION (LIVE)
-// =============================================
-function updateCounters() {
-
-  // Grow world population
-  worldPopulation += worldPopulation * (growthRates.world / secondsPerYear);
+// Update UI
+function tick() {
+  worldPopulation += worldPopulation * (worldGrowthRate / secondsPerYear);
 
   const worldInt = Math.floor(worldPopulation);
+  document.getElementById("world").textContent =
+    worldInt.toLocaleString();
 
-  // WORLD
-  const worldEl = document.getElementById("world");
-  worldEl.textContent = worldInt.toLocaleString();
+  const religions = splitReligions(worldInt);
 
-  previousDisplay.world = worldInt;
-
-  // RELIGIONS (deterministic)
-  const religionInts = getDeterministicReligionIntegers(
-    worldInt,
-    religionShares
-  );
-
-  for (let key in religionInts) {
+  for (let key in religions) {
     const el = document.getElementById(key);
-    if (!el) continue;
-    el.textContent = religionInts[key].toLocaleString();
-    previousDisplay[key] = religionInts[key];
+    if (el) el.textContent = religions[key].toLocaleString();
   }
 }
 
-
-// ---- RUN ----
-loadData().then(() => {
-  updateCounters();
-  setInterval(updateCounters, 1000);
+// Run
+loadWorld().then(() => {
+  tick();
+  setInterval(tick, 1000);
 });
 
 
