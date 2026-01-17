@@ -68,7 +68,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
-const statsRef = ref(database, "/");
+const statsRef = ref(database, "world");
 
 const secondsPerYear = 365 * 24 * 60 * 60;
 
@@ -90,24 +90,25 @@ const growthRates = {
 
 // ---- Global State ----
 let worldPopulation = 0;
-let religions = {};
-let lastTimestamp = 0;
 let previousDisplay = {};
+
 
 // =============================================
 // LOAD DATA FROM FIREBASE
 // =============================================
 async function loadData() {
   const snapshot = await get(statsRef);
-  console.log("Firebase snapshot:", snapshot.val());
-
 
   if (snapshot.exists()) {
-    const data = snapshot.val();
-    worldPopulation = data.world;
-    religions = data.religions;
-    lastTimestamp = data.lastTimestamp || Date.now();
+    worldPopulation = snapshot.val();
+  } else {
+    // absolute safety fallback
+    worldPopulation = 8180000000;
   }
+
+  previousDisplay.world = Math.floor(worldPopulation);
+}
+
 
   // Apply background growth
   const now = Date.now();
