@@ -144,57 +144,34 @@ function saveToDatabase() {
 // =============================================
 function updateCounters() {
 
-  // ===== WORLD GROWTH =====
-  const oldWorld = worldPopulation;
-
+  // Grow world population
   worldPopulation += worldPopulation * (growthRates.world / secondsPerYear);
 
-  const deltaWorld = worldPopulation - oldWorld;
-
-  // ===== DISTRIBUTE DELTA =====
-  let distributed = 0;
-
-  for (let key in religions) {
-    const add = deltaWorld * religionShares[key];
-    religions[key] += add;
-    distributed += add;
-  }
-
-  // ===== ROUNDING RESIDUE FIX (CRITICAL) =====
-  const sumReligions = Object.values(religions)
-    .reduce((a, b) => a + b, 0);
-
-  const residue = worldPopulation - sumReligions;
-
-  // Put residue into unaffiliated to conserve total
-  religions.unaffiliated += residue;
-
-  // ===== DISPLAY WORLD =====
+  // ===== WORLD DISPLAY =====
   const worldEl = document.getElementById("world");
-  const worldDisplay = Math.floor(worldPopulation);
-  worldEl.textContent = worldDisplay.toLocaleString();
-
-  worldEl.style.color =
-    worldDisplay > previousDisplay.world ? "#00ff88" :
-    worldDisplay < previousDisplay.world ? "#ff4d4d" : "white";
-
-  previousDisplay.world = worldDisplay;
   const worldInt = Math.floor(worldPopulation);
 
+  worldEl.textContent = worldInt.toLocaleString();
+  worldEl.style.color =
+    worldInt > previousDisplay.world ? "#00ff88" :
+    worldInt < previousDisplay.world ? "#ff4d4d" : "white";
+
+  previousDisplay.world = worldInt;
+
   // ===== DETERMINISTIC RELIGION DISPLAY =====
-const religionInts = getDeterministicReligionIntegers(
-  worldInt,
-  religionShares
-);
+  const religionInts = getDeterministicReligionIntegers(
+    worldInt,
+    religionShares
+  );
 
-for (let key in religionInts) {
-  const el = document.getElementById(key);
-  if (!el) continue;
+  for (let key in religionInts) {
+    const el = document.getElementById(key);
+    if (!el) continue;
 
-  el.textContent = religionInts[key].toLocaleString();
-  previousDisplay[key] = religionInts[key];
+    el.textContent = religionInts[key].toLocaleString();
+    previousDisplay[key] = religionInts[key];
+  }
 }
-
 
   // ===== DISPLAY RELIGIONS =====
   for (let key in religions) {
