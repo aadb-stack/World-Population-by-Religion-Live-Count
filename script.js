@@ -128,18 +128,15 @@ function updateCounters() {
   // Grow world population
   worldPopulation += worldPopulation * (growthRates.world / secondsPerYear);
 
-  // ===== WORLD DISPLAY =====
-  const worldEl = document.getElementById("world");
   const worldInt = Math.floor(worldPopulation);
 
+  // WORLD
+  const worldEl = document.getElementById("world");
   worldEl.textContent = worldInt.toLocaleString();
-  worldEl.style.color =
-    worldInt > previousDisplay.world ? "#00ff88" :
-    worldInt < previousDisplay.world ? "#ff4d4d" : "white";
 
   previousDisplay.world = worldInt;
 
-  // ===== DETERMINISTIC RELIGION DISPLAY =====
+  // RELIGIONS (deterministic)
   const religionInts = getDeterministicReligionIntegers(
     worldInt,
     religionShares
@@ -148,12 +145,10 @@ function updateCounters() {
   for (let key in religionInts) {
     const el = document.getElementById(key);
     if (!el) continue;
-
     el.textContent = religionInts[key].toLocaleString();
     previousDisplay[key] = religionInts[key];
   }
 }
-
 
 
 // ---- RUN ----
