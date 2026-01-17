@@ -4,6 +4,19 @@
 // =============================================
 
 const { initializeApp, getDatabase, ref, get, set } = window.firebaseModules;
+const religionShares = {
+  christian: 2380000000 / 8180000000,
+  islam: 2020000000 / 8180000000,
+  hindu: 1200000000 / 8180000000,
+  buddhism: 520000000 / 8180000000,
+  sikhism: 30000000 / 8180000000,
+  judaism: 15000000 / 8180000000,
+  taoism: 12000000 / 8180000000,
+  confucianism: 6000000 / 8180000000,
+  jainism: 4500000 / 8180000000,
+  shinto: 3000000 / 8180000000,
+  unaffiliated: 1900000000 / 8180000000
+};
 
 // 🔐 Your Firebase Config
 const firebaseConfig = {
@@ -96,48 +109,61 @@ function saveToDatabase() {
 // =============================================
 function updateCounters() {
 
-  // ---- WORLD ----
+  // ===== WORLD GROWTH =====
+  const oldWorld = worldPopulation;
+
   worldPopulation += worldPopulation * (growthRates.world / secondsPerYear);
-  const worldEl = document.getElementById("world");
 
-  if (worldEl) {
-    const currentWorld = Math.floor(worldPopulation);
-    worldEl.textContent = currentWorld.toLocaleString();
+  const deltaWorld = worldPopulation - oldWorld;
 
-    if (currentWorld > previousDisplay.world) {
-      worldEl.style.color = "#00ff88";
-    } else if (currentWorld < previousDisplay.world) {
-      worldEl.style.color = "#ff4d4d";
-    } else {
-      worldEl.style.color = "white";
-    }
+  // ===== DISTRIBUTE DELTA =====
+  let distributed = 0;
 
-    previousDisplay.world = currentWorld;
+  for (let key in religions) {
+    const add = deltaWorld * religionShares[key];
+    religions[key] += add;
+    distributed += add;
   }
 
-  // ---- RELIGIONS ----
+  // ===== ROUNDING RESIDUE FIX (CRITICAL) =====
+  const sumReligions = Object.values(religions)
+    .reduce((a, b) => a + b, 0);
+
+  const residue = worldPopulation - sumReligions;
+
+  // Put residue into unaffiliated to conserve total
+  religions.unaffiliated += residue;
+
+  // ===== DISPLAY WORLD =====
+  const worldEl = document.getElementById("world");
+  const worldDisplay = Math.floor(worldPopulation);
+  worldEl.textContent = worldDisplay.toLocaleString();
+
+  worldEl.style.color =
+    worldDisplay > previousDisplay.world ? "#00ff88" :
+    worldDisplay < previousDisplay.world ? "#ff4d4d" : "white";
+
+  previousDisplay.world = worldDisplay;
+
+  // ===== DISPLAY RELIGIONS =====
   for (let key in religions) {
-    religions[key] += religions[key] * (growthRates[key] / secondsPerYear);
     const el = document.getElementById(key);
     if (!el) continue;
 
-    const current = Math.floor(religions[key]);
-    el.textContent = current.toLocaleString();
+    const value = Math.floor(religions[key]);
+    el.textContent = value.toLocaleString();
 
-    if (current > previousDisplay[key]) {
-      el.style.color = "#00ff88";
-    } else if (current < previousDisplay[key]) {
-      el.style.color = "#ff4d4d";
-    } else {
-      el.style.color = "white";
-    }
+    el.style.color =
+      value > previousDisplay[key] ? "#00ff88" :
+      value < previousDisplay[key] ? "#ff4d4d" : "white";
 
-    previousDisplay[key] = current;
+    previousDisplay[key] = value;
   }
 
-  // Save globally
+  // ===== SAVE =====
   saveToDatabase();
 }
+
 
 // ---- RUN ----
 loadData().then(() => {
