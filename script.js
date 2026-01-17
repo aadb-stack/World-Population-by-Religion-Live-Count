@@ -4,41 +4,6 @@
 // =============================================
 
 const { initializeApp, getDatabase, ref, get, set } = window.firebaseModules;
-function getDeterministicReligionIntegers(worldInt, religionShares) {
-  const entries = Object.entries(religionShares);
-
-  // Step 1: raw values
-  const raw = entries.map(([key, share]) => ({
-    key,
-    value: worldInt * share
-  }));
-
-  // Step 2: floor all
-  const floored = raw.map(r => ({
-    key: r.key,
-    value: Math.floor(r.value),
-    frac: r.value - Math.floor(r.value)
-  }));
-
-  // Step 3: distribute remainder deterministically
-  let remainder =
-    worldInt - floored.reduce((s, r) => s + r.value, 0);
-
-  // Sort by fractional part DESC, then key (stable tie-break)
-  floored.sort((a, b) =>
-    b.frac - a.frac || a.key.localeCompare(b.key)
-  );
-
-  for (let i = 0; i < remainder; i++) {
-    floored[i % floored.length].value++;
-  }
-
-  // Step 4: return object
-  return Object.fromEntries(
-    floored.map(r => [r.key, r.value])
-  );
-}
-
 const religionShares = {
   christian: 2380000000 / 8180000000,
   islam: 2020000000 / 8180000000,
@@ -179,26 +144,20 @@ function updateCounters() {
     worldDisplay < previousDisplay.world ? "#ff4d4d" : "white";
 
   previousDisplay.world = worldDisplay;
-  // ===== DETERMINISTIC RELIGION DISPLAY =====
-const religionInts = getDeterministicReligionIntegers(
-  worldInt,
-  religionShares
-);
-
-for (let key in religionInts) {
-  const el = document.getElementById(key);
-  if (!el) continue;
-
-  el.textContent = religionInts[key].toLocaleString();
-  previousDisplay[key] = religionInts[key];
-}
-
 
   // ===== DISPLAY RELIGIONS =====
   for (let key in religions) {
     const el = document.getElementById(key);
     if (!el) continue;
 
+    const value = Math.floor(religions[key]);
+    el.textContent = value.toLocaleString();
+
+    el.style.color =
+      value > previousDisplay[key] ? "#00ff88" :
+      value < previousDisplay[key] ? "#ff4d4d" : "white";
+
+    previousDisplay[key] = value;
   }
 
   // ===== SAVE =====
