@@ -4,6 +4,9 @@
 // =============================================
 
 const { initializeApp, getDatabase, ref, get } = window.firebaseModules;
+let previousDisplay = {
+  world: null
+};
 
 // --- CONSTANTS ---
 const secondsPerYear = 365 * 24 * 60 * 60;
@@ -77,17 +80,23 @@ function computeWorldNow() {
 
 // --- DISPLAY ONLY ---
 function updateCounters() {
-  // 🔒 Guard: don’t run until Firebase data is loaded
-  if (!baseWorld || !baseTimestamp) {
-    console.warn("Waiting for Firebase data...");
-    return;
-  }
+  // Guard: wait for Firebase data
+  if (!baseWorld || !baseTimestamp) return;
 
   const worldInt = computeWorldNow();
 
   const worldEl = document.getElementById("world");
   if (worldEl) {
     worldEl.textContent = worldInt.toLocaleString();
+
+    if (previousDisplay.world !== null) {
+      worldEl.style.color =
+        worldInt > previousDisplay.world ? "#00ff88" :
+        worldInt < previousDisplay.world ? "#ff4d4d" :
+        "white";
+    }
+
+    previousDisplay.world = worldInt;
   }
 
   for (let key in religionShares) {
@@ -96,9 +105,11 @@ function updateCounters() {
 
     const value = Math.floor(worldInt * religionShares[key]);
     el.textContent = value.toLocaleString();
+
+    // Optional: subtle green flash only (no red needed)
+    el.style.color = "#00ff88";
   }
 }
-
 
 // --- RUN ---
 loadData().then(() => {
