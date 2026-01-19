@@ -48,24 +48,21 @@ let baseTimestamp = 0;
 // --- LOAD ANCHOR FROM FIREBASE ---
 async function loadData() {
   const snapshot = await get(statsRef);
+  console.log("SNAPSHOT:", snapshot.val());
 
   if (!snapshot.exists()) {
-    throw new Error("Firebase data missing");
+    console.error("Firebase returned NULL");
+    return;
   }
 
   const data = snapshot.val();
 
-  if (
-    typeof data.baseWorld !== "number" ||
-    typeof data.baseTimestamp !== "number"
-  ) {
-    throw new Error("Invalid Firebase anchor data");
-  }
+  baseWorld = Number(data.baseWorld);
+  baseTimestamp = Number(data.baseTimestamp);
 
-  baseWorld = data.baseWorld;
-  baseTimestamp = data.baseTimestamp;
+  console.log("Loaded baseWorld:", baseWorld);
+  console.log("Loaded baseTimestamp:", baseTimestamp);
 }
-
 
 // --- PURE WORLD CALCULATION ---
 function computeWorldNow() {
