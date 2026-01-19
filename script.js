@@ -1,4 +1,4 @@
-// =============================================
+the code which u gave me: // =============================================
 // World Population by Religion
 // Server-Authoritative (Firebase Anchor)
 // =============================================
@@ -48,20 +48,10 @@ let baseTimestamp = 0;
 // --- LOAD ANCHOR FROM FIREBASE ---
 async function loadData() {
   const snapshot = await get(statsRef);
-  console.log("SNAPSHOT:", snapshot.val());
-
-  if (!snapshot.exists()) {
-    console.error("Firebase returned NULL");
-    return;
-  }
-
   const data = snapshot.val();
 
   baseWorld = Number(data.baseWorld);
   baseTimestamp = Number(data.baseTimestamp);
-
-  console.log("Loaded baseWorld:", baseWorld);
-  console.log("Loaded baseTimestamp:", baseTimestamp);
 }
 
 // --- PURE WORLD CALCULATION ---
@@ -77,12 +67,6 @@ function computeWorldNow() {
 
 // --- DISPLAY ONLY ---
 function updateCounters() {
-  // 🔒 Guard: don’t run until Firebase data is loaded
-  if (!baseWorld || !baseTimestamp) {
-    console.warn("Waiting for Firebase data...");
-    return;
-  }
-
   const worldInt = computeWorldNow();
 
   const worldEl = document.getElementById("world");
@@ -98,7 +82,6 @@ function updateCounters() {
     el.textContent = value.toLocaleString();
   }
 }
-
 
 // --- RUN ---
 loadData().then(() => {
