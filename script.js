@@ -67,6 +67,12 @@ function computeWorldNow() {
 
 // --- DISPLAY ONLY ---
 function updateCounters() {
+  // 🔒 Guard: don’t run until Firebase data is loaded
+  if (!baseWorld || !baseTimestamp) {
+    console.warn("Waiting for Firebase data...");
+    return;
+  }
+
   const worldInt = computeWorldNow();
 
   const worldEl = document.getElementById("world");
@@ -82,6 +88,7 @@ function updateCounters() {
     el.textContent = value.toLocaleString();
   }
 }
+
 
 // --- RUN ---
 loadData().then(() => {
