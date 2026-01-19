@@ -48,10 +48,20 @@ let baseTimestamp = 0;
 // --- LOAD ANCHOR FROM FIREBASE ---
 async function loadData() {
   const snapshot = await get(statsRef);
+  console.log("SNAPSHOT:", snapshot.val());
+
+  if (!snapshot.exists()) {
+    console.error("Firebase returned NULL");
+    return;
+  }
+
   const data = snapshot.val();
 
   baseWorld = Number(data.baseWorld);
   baseTimestamp = Number(data.baseTimestamp);
+
+  console.log("Loaded baseWorld:", baseWorld);
+  console.log("Loaded baseTimestamp:", baseTimestamp);
 }
 
 // --- PURE WORLD CALCULATION ---
