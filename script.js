@@ -1,9 +1,8 @@
 // =============================================
-// World Population by Religion (FINAL WORKING)
-// Firebase Anchor + Green/Red
+// World Population by Religion (STABLE + CORRECT)
+// Firebase Anchor + Per-Religion Growth
 // =============================================
 
-// 🔹 Firebase imports (THIS FIXES YOUR ERROR)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
@@ -25,22 +24,22 @@ const statsRef = ref(db, "/");
 
 // ---------- CONSTANTS ----------
 const secondsPerYear = 365 * 24 * 60 * 60;
-const worldGrowthRate = 0.0085; // 0.85% per year (UN)
+const worldGrowthRate = 0.0085; // 0.85% / year (UN)
 
+// Pew-style annualized demographic rates
 const religionData = {
-  christian: { share: 2380000000 / 8180000000, rate: 0.009 },
-  islam: { share: 2020000000 / 8180000000, rate: 0.018 },
-  hindu: { share: 1200000000 / 8180000000, rate: 0.011 },
-  buddhism: { share: 520000000 / 8180000000, rate: 0.003 },
-  sikhism: { share: 30000000 / 8180000000, rate: 0.012 },
-  judaism: { share: 15000000 / 8180000000, rate: 0.003 },
-  taoism: { share: 12000000 / 8180000000, rate: -0.001 },
-  confucianism: { share: 6000000 / 8180000000, rate: -0.003 },
-  jainism: { share: 4500000 / 8180000000, rate: 0.004 },
-  shinto: { share: 3000000 / 8180000000, rate: -0.005 },
-  unaffiliated: { share: 1900000000 / 8180000000, rate: 0.007 }
+  christian:     { share: 2380000000 / 8180000000, rate:  0.009 },
+  islam:         { share: 2020000000 / 8180000000, rate:  0.018 },
+  hindu:         { share: 1200000000 / 8180000000, rate:  0.011 },
+  buddhism:      { share:  520000000 / 8180000000, rate:  0.003 },
+  sikhism:       { share:   30000000 / 8180000000, rate:  0.012 },
+  judaism:       { share:   15000000 / 8180000000, rate:  0.003 },
+  taoism:        { share:   12000000 / 8180000000, rate: -0.001 },
+  confucianism:  { share:    6000000 / 8180000000, rate: -0.003 },
+  jainism:       { share:    4500000 / 8180000000, rate:  0.004 },
+  shinto:        { share:    3000000 / 8180000000, rate: -0.005 },
+  unaffiliated:  { share: 1900000000 / 8180000000, rate:  0.007 }
 };
-
 
 // ---------- STATE ----------
 let baseWorld = 0;
@@ -51,33 +50,43 @@ const baseReligions = {};
 
 // ---------- LOAD FIREBASE ----------
 async function loadAnchor() {
-  const snap = await get(statsRef);
+  try {
+    const snap = await get(statsRef);
+    if (!snap.exists()) throw new Error("Firebase data missing");
 
-  if (!snap.exists()) {
-    console.error("Firebase data missing");
-    return;
+    const data = snap.val();
+    baseWorld = Number(data.baseWorld);
+    baseTimestamp = Number(data.baseTimestamp);
+
+    if (!baseWorld || !baseTimestamp) {
+      throw new Error("Invalid Firebase anchor");
+    }
+
+    // lock religion bases
+    for (const key in religionData) {
+      baseReligions[key] = Math.floor(
+        baseWorld * religionData[key].share
+      );
+    }
+
+    ready = true;
+  } catch (e) {
+    console.error("Firebase init failed:", e);
   }
-
-  const data = snap.val();
-  baseWorld = Number(data.baseWorld);
-  baseTimestamp = Number(data.baseTimestamp);
-
-  if (!baseWorld || !baseTimestamp) {
-    console.error("Invalid Firebase anchor");
-    return;
-  }
-
-  ready = true;
-
-for (const key in religionData) {
-  baseReligions[key] = Math.floor(baseWorld * religionData[key].share);
 }
 
-// ---------- CALC ----------
+// ---------- WORLD POPULATION ----------
 function currentWorld() {
   const elapsed = (Date.now() - baseTimestamp) / 1000;
   const growth = worldGrowthRate * (elapsed / secondsPerYear);
   return Math.floor(baseWorld * (1 + growth));
+}
+
+// ---------- RELIGION POPULATION ----------
+function currentReligion(base, rate) {
+  const elapsed = (Date.now() - baseTimestamp) / 1000;
+  const growth = rate * (elapsed / secondsPerYear);
+  return Math.floor(base * (1 + growth));
 }
 
 // ---------- UPDATE UI ----------
@@ -98,22 +107,22 @@ function update() {
     prevWorld = world;
   }
 
- for (const key in religionData) {
-  const el = document.getElementById(key);
-  if (!el) continue;
+  for (const key in religionData) {
+    const el = document.getElementById(key);
+    if (!el) continue;
 
-  const value = currentReligion(
-    baseReligions[key],
-    religionData[key].rate
-  );
+    const value = currentReligion(
+      baseReligions[key],
+      religionData[key].rate
+    );
 
-  el.textContent = value.toLocaleString();
-  el.style.color =
-    religionData[key].rate >= 0 ? "#00ff88" : "#ff4d4d";
+    el.textContent = value.toLocaleString();
+    el.style.color =
+      religionData[key].rate >= 0 ? "#00ff88" : "#ff4d4d";
+  }
 }
 
 // ---------- START ----------
-loadAnchor().then(() => {
-  update();
-  setInterval(update, 1000);
-});
+await loadAnchor();
+update();
+setInterval(update, 1000);
