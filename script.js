@@ -1,9 +1,30 @@
 // =============================================
-// Time-Aware Population Counter (GLOBAL VERSION)
-// Firebase Realtime Database
+// Time-Aware World + Religion Counter
+// Firebase Anchor Based (CORRECTED VERSION)
 // =============================================
 
-const { initializeApp, getDatabase, ref, get, set } = window.firebaseModules;
+const { initializeApp, getDatabase, ref, get } = window.firebaseModules;
+
+// ---------------------------------------------
+// Firebase Config
+// ---------------------------------------------
+const firebaseConfig = {
+  databaseURL: "https://world-religion-database-default-rtdb.asia-southeast1.firebasedatabase.app"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const rootRef = ref(db, "/");
+
+// ---------------------------------------------
+// Constants
+// ---------------------------------------------
+const secondsPerYear = 365 * 24 * 60 * 60;
+
+// World growth (realistic avg)
+const WORLD_GROWTH_RATE = 0.0085;
+
+// Religion population shares (must sum ~1)
 const religionShares = {
   christian: 2380000000 / 8180000000,
   islam: 2020000000 / 8180000000,
@@ -18,162 +39,73 @@ const religionShares = {
   unaffiliated: 1900000000 / 8180000000
 };
 
-// 🔐 Your Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyC60KbVWhfeMRUyYPQHn_4z3tL_KPuaCAs",
-  authDomain: "world-religion-database.firebaseapp.com",
-  databaseURL: "https://world-religion-database-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "world-religion-database",
-  storageBucket: "world-religion-database.firebasestorage.app",
-  messagingSenderId: "226381276599",
-  appId: "1:226381276599:web:5c15d6b6f32e232125b432",
-  measurementId: "G-KTLELSJPFK"
-};
+// ---------------------------------------------
+// Runtime State
+// ---------------------------------------------
+let baseWorld = 0;
+let baseTimestamp = 0;
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
-const statsRef = ref(database, "/");
+// ---------------------------------------------
+// Load Anchor From Firebase
+// ---------------------------------------------
+async function loadBaseData() {
+  const snapshot = await get(rootRef);
 
-const secondsPerYear = 365 * 24 * 60 * 60;
-
-// ---- Growth Rates (per year) ----
-const growthRates = {
-  world: 0.0085,
-  christian: 0.008,
-  islam: 0.021,
-  hindu: 0.011,
-  buddhism: -0.0025,
-  judaism: 0.003,
-  sikhism: 0.010,
-  taoism: -0.004,
-  confucianism: -0.004,
-  jainism: 0.001,
-  shinto: -0.005,
-  unaffiliated: 0.012
-};
-
-// ---- Global State ----
-let worldPopulation = 0;
-let religions = {};
-let lastTimestamp = 0;
-let previousDisplay = {};
-let lastTickTime = Date.now();
-
-// =============================================
-// LOAD DATA FROM FIREBASE
-// =============================================
-async function loadData() {
-  const snapshot = await get(statsRef);
-  console.log("Firebase snapshot:", snapshot.val());
-
-
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    worldPopulation = data.world;
-    religions = data.religions;
-    lastTimestamp = data.lastTimestamp || Date.now();
+  if (!snapshot.exists()) {
+    console.error("No Firebase data found");
+    return;
   }
 
-  // Apply background growth
-  const now = Date.now();
-  const elapsedSeconds = (now - lastTimestamp) / 1000;
+  const data = snapshot.val();
+  baseWorld = data.baseWorld;
+  baseTimestamp = data.baseTimestamp;
 
-  worldPopulation += worldPopulation * (growthRates.world * elapsedSeconds / secondsPerYear);
+  console.log("Loaded base:", baseWorld, baseTimestamp);
 
-  for (let key in religions) {
-    religions[key] += religions[key] * (growthRates[key] * elapsedSeconds / secondsPerYear);
-  }
-
-  // Initialize previous display
-  previousDisplay.world = Math.floor(worldPopulation);
-  for (let key in religions) {
-    previousDisplay[key] = Math.floor(religions[key]);
-  }
-
-  saveToDatabase();
+  startCounters();
 }
 
-// =============================================
-// SAVE DATA TO FIREBASE
-// =============================================
-function saveToDatabase() {
-  set(statsRef, {
-    world: worldPopulation,
-    religions: religions,
-    lastTimestamp: Date.now()
-  });
+// ---------------------------------------------
+// Counter Logic
+// ---------------------------------------------
+function startCounters() {
+  setInterval(() => {
+    const now = Date.now();
+    const elapsedSeconds = (now - baseTimestamp) / 1000;
+
+    // Continuous exponential growth
+    const worldNow =
+      baseWorld *
+      Math.exp(WORLD_GROWTH_RATE * (elapsedSeconds / secondsPerYear));
+
+    renderWorld(worldNow);
+    renderReligions(worldNow);
+  }, 1000);
 }
 
-// =============================================
-// UPDATE FUNCTION (LIVE)
-// =============================================
-function updateCounters() {
+// ---------------------------------------------
+// Render World
+// ---------------------------------------------
+function renderWorld(value) {
+  const el = document.getElementById("world");
+  if (!el) return;
+  el.textContent = Math.floor(value).toLocaleString();
+}
 
-  // ===== WORLD GROWTH =====
-  const oldWorld = worldPopulation;
-
-  const now = Date.now();
-const elapsedSeconds = (now - lastTickTime) / 1000;
-lastTickTime = now;
-
-// Grow world using REAL elapsed time
-worldPopulation += worldPopulation *
-  (growthRates.world * elapsedSeconds / secondsPerYear);
-
-  const deltaWorld = worldPopulation - oldWorld;
-
-  // ===== DISTRIBUTE DELTA =====
-  let distributed = 0;
-
-  for (let key in religions) {
-    const add = deltaWorld * religionShares[key];
-    religions[key] += add;
-    distributed += add;
-  }
-
-  // ===== ROUNDING RESIDUE FIX (CRITICAL) =====
-  const sumReligions = Object.values(religions)
-    .reduce((a, b) => a + b, 0);
-
-  const residue = worldPopulation - sumReligions;
-
-  // Put residue into unaffiliated to conserve total
-  religions.unaffiliated += residue;
-
-  // ===== DISPLAY WORLD =====
-  const worldEl = document.getElementById("world");
-  const worldDisplay = Math.floor(worldPopulation);
-  worldEl.textContent = worldDisplay.toLocaleString();
-
-  worldEl.style.color =
-    worldDisplay > previousDisplay.world ? "#00ff88" :
-    worldDisplay < previousDisplay.world ? "#ff4d4d" : "white";
-
-  previousDisplay.world = worldDisplay;
-
-  // ===== DISPLAY RELIGIONS =====
-  for (let key in religions) {
+// ---------------------------------------------
+// Render Religions
+// ---------------------------------------------
+function renderReligions(worldValue) {
+  for (const key in religionShares) {
     const el = document.getElementById(key);
     if (!el) continue;
 
-    const value = Math.floor(religions[key]);
-    el.textContent = value.toLocaleString();
-
-    el.style.color =
-      value > previousDisplay[key] ? "#00ff88" :
-      value < previousDisplay[key] ? "#ff4d4d" : "white";
-
-    previousDisplay[key] = value;
+    const val = worldValue * religionShares[key];
+    el.textContent = Math.floor(val).toLocaleString();
   }
-
-  // ===== SAVE =====
-  saveToDatabase();
 }
 
-
-// ---- RUN ----
-loadData().then(() => {
-  updateCounters();
-  setInterval(updateCounters, 1000);
-});
+// ---------------------------------------------
+// Run
+// ---------------------------------------------
+loadBaseData();
