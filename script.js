@@ -76,7 +76,7 @@ for (const key in religionShares) {
   baseReligions[key] = baseWorld * religionShares[key];
 }
 
-startCounters(baseWorld, baseTimestamp);
+startCounters(baseWorld, baseTimestamp);}
 
 
 // ---------------------------------------------
@@ -93,7 +93,7 @@ function startCounters(baseWorld, baseTimestamp) {
 
   renderWorld(world);
   renderReligions(elapsedYears);
-}, 1000);
+}, 1000);}
 
 // ---------------------------------------------
 // Render
