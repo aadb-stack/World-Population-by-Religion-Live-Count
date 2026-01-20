@@ -46,8 +46,21 @@
     </div>
 
   </main>
+  <!-- Firebase SDK (INLINE MODULE — MUST COME FIRST) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-<script type="module" src="script.js"></script>
+    window.firebaseModules = {
+      initializeApp,
+      getDatabase,
+      ref,
+      get
+    };
+  </script>
+
+  <!-- Your logic (NORMAL SCRIPT) -->
+  <script src="script.js"></script>
 
 </body>
 </html>
