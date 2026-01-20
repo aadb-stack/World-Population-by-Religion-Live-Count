@@ -25,6 +25,8 @@ const statsRef = ref(db, "/");
 
 // ---------- CONSTANTS ----------
 const secondsPerYear = 365 * 24 * 60 * 60;
+const worldGrowthRate = 0.0085; // 0.85% per year (UN)
+
 const religionData = {
   christian: { share: 2380000000 / 8180000000, rate: 0.009 },
   islam: { share: 2020000000 / 8180000000, rate: 0.018 },
@@ -74,9 +76,8 @@ for (const key in religionData) {
 // ---------- CALC ----------
 function currentWorld() {
   const elapsed = (Date.now() - baseTimestamp) / 1000;
-  return Math.floor(
-    baseWorld * (1 + growthRate * elapsed / secondsPerYear)
-  );
+  const growth = worldGrowthRate * (elapsed / secondsPerYear);
+  return Math.floor(baseWorld * (1 + growth));
 }
 
 // ---------- UPDATE UI ----------
