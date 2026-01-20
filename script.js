@@ -116,7 +116,15 @@ function renderReligions(world) {
     const el = document.getElementById(key);
     if (!el) continue;
 
-    const display = Math.floor(world * religionShares[key]);
+   const elapsedYears =
+  (Date.now() - baseTimestamp) / (1000 * secondsPerYear);
+
+const raw =
+  baseReligions[key] *
+  Math.exp(religionGrowthRates[key] * elapsedYears);
+
+const display = Math.floor(raw);
+
     const prev = previousDisplay[key] ?? display;
 
     el.textContent = display.toLocaleString();
