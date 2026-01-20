@@ -15,7 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const rootRef = ref(db, "/");
-const previousDisplay = {};
+const previousRaw = {};
 
 // ---------------------------------------------
 // Constants
@@ -74,42 +74,42 @@ function renderWorld(val) {
   const el = document.getElementById("world");
   if (!el) return;
 
-  const current = Math.floor(val);
-  const prev = previousDisplay.world ?? current;
+  const prev = previousRaw.world ?? val;
 
-  el.textContent = current.toLocaleString();
+  el.textContent = Math.floor(val).toLocaleString();
 
-  if (current > prev) {
-    el.style.color = "#00ff88"; // green
-  } else if (current < prev) {
-    el.style.color = "#ff4d4d"; // red (theoretical)
+  if (val > prev) {
+    el.style.color = "#00ff88";
+  } else if (val < prev) {
+    el.style.color = "#ff4d4d";
   } else {
-    el.style.color = "#ffffff"; // white
+    el.style.color = "#ffffff";
   }
 
-  previousDisplay.world = current;
+  previousRaw.world = val;
 }
+
 
 function renderReligions(world) {
   for (const key in religionShares) {
     const el = document.getElementById(key);
     if (!el) continue;
 
-    const current = Math.floor(world * religionShares[key]);
-    const prev = previousDisplay[key] ?? current;
+    const raw = world * religionShares[key];
+    const prev = previousRaw[key] ?? raw;
 
-    el.textContent = current.toLocaleString();
+    el.textContent = Math.floor(raw).toLocaleString();
 
-    // EXACT behavior you want
-    if (current > prev) {
+    // Compare RAW values, not rounded ones
+    if (raw > prev) {
       el.style.color = "#00ff88"; // increase
-    } else if (current < prev) {
+    } else if (raw < prev) {
       el.style.color = "#ff4d4d"; // decrease
     } else {
-      el.style.color = "#ffffff"; // NO CHANGE → WHITE
+      el.style.color = "#ffffff"; // truly no change
     }
 
-    previousDisplay[key] = current;
+    previousRaw[key] = raw;
   }
 }
 
