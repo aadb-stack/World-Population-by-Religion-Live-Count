@@ -84,16 +84,16 @@ startCounters(baseWorld, baseTimestamp);
 // ---------------------------------------------
 function startCounters(baseWorld, baseTimestamp) {
   setInterval(() => {
-    const elapsed = (Date.now() - GLOBAL_BASE_TIMESTAMP)
- / 1000;
-    const world =
-      baseWorld *
-      Math.exp(WORLD_GROWTH_RATE * (elapsed / secondsPerYear));
+  const elapsedYears =
+    (Date.now() - baseTimestamp) / (1000 * secondsPerYear);
 
-    renderWorld(world);
-    renderReligions(world);
-  }, 1000);
-}
+  const world =
+    baseWorld *
+    Math.exp(WORLD_GROWTH_RATE * elapsedYears);
+
+  renderWorld(world);
+  renderReligions(elapsedYears);
+}, 1000);
 
 // ---------------------------------------------
 // Render
@@ -115,13 +115,12 @@ function renderWorld(val) {
   previousDisplay.world = display;
 }
 
-function renderReligions(world) {
+function renderReligions(elapsedYears) {
+  if (!GLOBAL_BASE_TIMESTAMP || !baseReligions.christian) return;
+
   for (const key in religionShares) {
     const el = document.getElementById(key);
     if (!el) continue;
-
-    const elapsedYears =
-      (Date.now() - GLOBAL_BASE_TIMESTAMP) / (1000 * secondsPerYear);
 
     const raw =
       baseReligions[key] *
@@ -140,6 +139,7 @@ function renderReligions(world) {
     previousDisplay[key] = display;
   }
 }
+
 
 // ---------------------------------------------
 // Run
