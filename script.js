@@ -25,19 +25,20 @@ const baseReligions = {};
 // ---------------------------------------------
 const secondsPerYear = 365 * 24 * 60 * 60;
 const WORLD_GROWTH_RATE = 0.0085;
+const CLEAN_WORLD = 8271000000;
 
 const religionShares = {
-  christian: 2380000000 / 8180000000,
-  islam: 2020000000 / 8180000000,
-  hindu: 1200000000 / 8180000000,
-  buddhism: 520000000 / 8180000000,
-  sikhism: 30000000 / 8180000000,
-  judaism: 15000000 / 8180000000,
-  taoism: 12000000 / 8180000000,
-  confucianism: 6000000 / 8180000000,
-  jainism: 4500000 / 8180000000,
-  shinto: 3000000 / 8180000000,
-  unaffiliated: 1900000000 / 8180000000
+  christian: 2400000000 / CLEAN_WORLD,   // 2.40 B
+  islam: 2040000000 / CLEAN_WORLD,       // 2.04 B
+  hindu: 1210000000 / CLEAN_WORLD,       // 1.21 B
+  buddhism: 520000000 / CLEAN_WORLD,     // keep as is
+  sikhism: 30000000 / CLEAN_WORLD,
+  judaism: 15000000 / CLEAN_WORLD,
+  taoism: 12000000 / CLEAN_WORLD,
+  confucianism: 6000000 / CLEAN_WORLD,
+  jainism: 4500000 / CLEAN_WORLD,
+  shinto: 3000000 / CLEAN_WORLD,
+  unaffiliated: 1900000000 / CLEAN_WORLD
 };
 // ---------------------------------------------
 // Religion-specific growth rates (per year)
